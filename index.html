@@ -1,0 +1,232 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>质量问题分析助手</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"
+      defer
+    ></script>
+    <script src="./autoload-data.js" defer></script>
+    <script src="./script.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">≈</span>
+        </div>
+        <nav class="main-nav">
+          <a class="active" href="javascript:void(0)">质量数据分析</a>
+          <a href="javascript:void(0)">数据总览</a>
+          <a href="javascript:void(0)">问题跟踪</a>
+          <a href="javascript:void(0)">供应商分析</a>
+        </nav>
+        <div class="top-actions">
+          <button class="icon-btn" aria-label="通知">◎</button>
+          <div class="avatar">QA</div>
+        </div>
+      </header>
+
+      <section class="page-head">
+        <h1>PQ质量分析工具</h1>
+      </section>
+
+      <section class="filter-console" aria-label="筛选控制台">
+        <div class="filter-console-head">
+          <button
+            id="toggleUploadPanelBtn"
+            class="filter-toggle-btn"
+            type="button"
+            aria-controls="uploadPanel"
+            aria-expanded="false"
+          >
+            筛选条件
+          </button>
+          <p>上传文件后可按时间、车型、供应商和状态快速收敛分析范围。</p>
+        </div>
+        <div class="filter-item">
+          <label for="timeRangeFilter">时间范围:</label>
+          <select id="timeRangeFilter" disabled>
+            <option value="this_year">本年</option>
+            <option value="this_quarter">本季度</option>
+            <option value="this_month">本月</option>
+            <option value="this_week">本周</option>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="modelFilter">车型:</label>
+          <select id="modelFilter" disabled>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="supplierFilter">供应商:</label>
+          <select id="supplierFilter" disabled>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="statusFilter">状态:</label>
+          <select id="statusFilter" disabled>
+            <option value="open">未关闭</option>
+            <option value="closed">已关闭</option>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <button id="exportFilterBtn" class="console-export" disabled>导出结果</button>
+      </section>
+
+      <section id="uploadPanel" class="panel upload-panel panel-upload upload-panel-standalone is-collapsed">
+        <div class="upload-panel-grid">
+          <div class="upload-copy">
+            <h2>上传数据</h2>
+            <p class="panel-copy">
+              支持 <code>.xlsx</code>、<code>.xls</code>、<code>.csv</code>。建议包含“检测项名称、不良名称、车型、供应商、不良等级、解决进度、发生原因”等字段。
+            </p>
+
+            <label class="upload-box" for="fileInput">
+              <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+              <span>点击选择文件</span>
+              <small>或将文件拖到这里</small>
+            </label>
+
+            <p id="statusMessage" class="status-message">还没有上传文件。</p>
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>原始数据行数</span>
+              <strong id="rowCount">0</strong>
+            </article>
+            <article class="summary-card">
+              <span>合并项种类数</span>
+              <strong id="groupCount">0</strong>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <main class="layout">
+        <section class="panel panel-trend">
+          <div class="panel-heading">
+            <h2>不良数量趋势图</h2>
+            <p>横轴随时间筛选自动切换：本年/本季度按月，本月按周，本周按日。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="defectTrendChart" aria-label="不良数量趋势图"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-pie panel-pie-model">
+          <div class="panel-heading">
+            <h2>车型问题项目数饼图</h2>
+            <p>同一车型内，相同“合并项”只计为 1 个项目数。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="modelProjectPie" aria-label="车型问题项目数饼图"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-pie panel-pie-reason">
+          <div class="panel-heading">
+            <h2>不良原因饼图</h2>
+            <p>按不良原因统计数量占比。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="reasonPie" aria-label="不良原因饼图"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-pie panel-pie-progress">
+          <div class="panel-heading">
+            <h2>解决进度饼图</h2>
+            <p>按解决进度统计数量占比。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="progressPie" aria-label="解决进度饼图"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-supplier">
+          <div class="panel-heading">
+            <h2>TOP5 供应商明细</h2>
+            <p>包含供应商、主等级、项目数、不良数量与最多不良名称。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="supplierTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel panel-defect-top">
+          <div class="panel-heading">
+            <h2>TOP5不良</h2>
+            <p>包含不良名称、主等级、项目数、最多供应商与不良数量。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="defectTopTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel panel-progress">
+          <div class="panel-heading">
+            <h2>不良原因帕累托图</h2>
+            <p>柱状显示数量，折线显示累计占比；点击柱体可查看问题点明细。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="progressStackChart" aria-label="不良原因帕累托图"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-issue-detail">
+          <div class="panel-heading">
+            <h2 id="issueDetailTitle">问题点明细</h2>
+            <p>点击上方帕累托图后自动展示筛选后的记录。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="issueDetailTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel panel-stats">
+          <div class="panel-heading">
+            <h2>数量统计</h2>
+            <p>按“合并项”分组计数，并按数量降序排序。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="statsTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
