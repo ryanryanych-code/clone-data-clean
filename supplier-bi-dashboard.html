@@ -1,880 +1,248 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>供应商来料不良 BI 聚合工具</title>
-  <style>
-    :root {
-      --bg: #f4f1ea;
-      --panel: #fffdf7;
-      --text: #1f2621;
-      --muted: #5f6a62;
-      --brand: #1d6f42;
-      --brand-2: #b25c2f;
-      --line: #d9d1c2;
-      --danger: #b73737;
-      --ok: #1d6f42;
-      --warn: #ad7a11;
-      --radius: 14px;
-      --shadow: 0 10px 24px rgba(27, 36, 30, 0.08);
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>供应商来料不良 BI 大屏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"
+      defer
+    ></script>
+    <script src="./autoload-data.js" defer></script>
+    <script src="./script.js" defer></script>
+    <style>
+      .topbar,
+      .page-head {
+        display: none;
+      }
 
-    * {
-      box-sizing: border-box;
-    }
+      .page-shell {
+        width: min(1560px, calc(100% - 24px));
+        margin-top: 10px;
+      }
 
-    body {
-      margin: 0;
-      font-family: "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 10% 10%, rgba(178, 92, 47, 0.12), transparent 35%),
-        radial-gradient(circle at 90% 20%, rgba(29, 111, 66, 0.12), transparent 40%),
-        linear-gradient(145deg, #f7f4ee, #ebe5d8);
-      min-height: 100vh;
-    }
+      .filter-console {
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">≈</span>
+        </div>
+        <nav class="main-nav">
+          <a class="active" href="javascript:void(0)">质量数据分析</a>
+          <a href="javascript:void(0)">数据总览</a>
+          <a href="javascript:void(0)">问题跟踪</a>
+          <a href="javascript:void(0)">供应商分析</a>
+        </nav>
+        <div class="top-actions">
+          <button class="icon-btn" aria-label="通知">◎</button>
+          <div class="avatar">QA</div>
+        </div>
+      </header>
 
-    .wrap {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 24px 16px 40px;
-    }
-
-    .hero {
-      border-radius: var(--radius);
-      padding: 20px;
-      background: linear-gradient(110deg, #f8f3e8, #f0e6d6);
-      box-shadow: var(--shadow);
-      border: 1px solid #e0d8c8;
-      margin-bottom: 14px;
-      animation: fadeIn 0.7s ease;
-    }
-
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-      letter-spacing: 0.5px;
-    }
-
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .panel {
-      border-radius: var(--radius);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      border: 1px solid #e8e0d1;
-      padding: 16px;
-      margin-top: 14px;
-      animation: rise 0.45s ease;
-    }
-
-    .panel h2 {
-      margin: 0 0 10px;
-      font-size: 19px;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 190px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #fffefa;
-      padding: 12px;
-      color: var(--text);
-      font-size: 13px;
-      line-height: 1.5;
-      resize: vertical;
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    textarea:focus {
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(29, 111, 66, 0.12);
-    }
-
-    .btns {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 13px;
-      padding: 10px 14px;
-      cursor: pointer;
-      transition: transform 0.14s ease, box-shadow 0.2s ease, background 0.2s ease;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-    }
-
-    .btn-primary {
-      color: #fff;
-      background: linear-gradient(130deg, #1d6f42, #245c49);
-      box-shadow: 0 8px 16px rgba(29, 111, 66, 0.2);
-    }
-
-    .btn-secondary {
-      color: #fff;
-      background: linear-gradient(130deg, #b25c2f, #9f4f28);
-      box-shadow: 0 8px 16px rgba(178, 92, 47, 0.2);
-    }
-
-    .btn-light {
-      background: #ece5d8;
-      color: #443e37;
-    }
-
-    .status {
-      margin-top: 10px;
-      font-size: 13px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      display: inline-block;
-      background: #f3efe5;
-      border: 1px solid #e4dccd;
-      color: #544e45;
-    }
-
-    .status.error {
-      background: #fceeee;
-      border-color: #f2cccc;
-      color: var(--danger);
-    }
-
-    .status.success {
-      background: #edf8f1;
-      border-color: #cde8d8;
-      color: var(--ok);
-    }
-
-    .status.warn {
-      background: #fff5df;
-      border-color: #f4dfb0;
-      color: var(--warn);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 14px;
-    }
-
-    .span-12 { grid-column: span 12; }
-    .span-8 { grid-column: span 8; }
-    .span-6 { grid-column: span 6; }
-    .span-4 { grid-column: span 4; }
-
-    .table-wrap {
-      overflow-x: auto;
-      border-radius: 10px;
-      border: 1px solid #e9e1d4;
-      margin-top: 8px;
-      background: #fffdfa;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 13px;
-      min-width: 640px;
-    }
-
-    th, td {
-      padding: 9px 10px;
-      border-bottom: 1px solid #efe7db;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background: #f8f2e8;
-      color: #3f4237;
-      font-weight: 700;
-      position: sticky;
-      top: 0;
-    }
-
-    tr:nth-child(even) td {
-      background: #fffaf0;
-    }
-
-    .json-box {
-      width: 100%;
-      background: #1b2421;
-      color: #effaf3;
-      border: 1px solid #2d3b35;
-      border-radius: 10px;
-      font-family: "IBM Plex Mono", "Consolas", monospace;
-      font-size: 12px;
-      padding: 12px;
-      white-space: pre;
-      overflow: auto;
-      min-height: 180px;
-      max-height: 450px;
-    }
-
-    .pill {
-      display: inline-block;
-      border-radius: 999px;
-      padding: 3px 9px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #efe9dd;
-      color: #4c4b45;
-      margin-right: 6px;
-      margin-bottom: 6px;
-    }
-
-    @media (max-width: 980px) {
-      .span-8, .span-6, .span-4 { grid-column: span 12; }
-      .hero h1 { font-size: 24px; }
-      table { min-width: 520px; }
-    }
-
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <section class="hero">
-      <h1>供应商来料不良 BI 聚合工具</h1>
-      <p>将原始 Excel/CSV 流水粘贴到下方，工具会自动执行字段识别、状态归一化、合并项计算（零件名称 - 不良现象）以及 6 个 BI 模块聚合，支持直接复制 JSON 给可视化平台。</p>
-    </section>
-
-    <section class="panel">
-      <h2>1) 数据输入</h2>
-      <p class="muted">支持 CSV / 制表符文本。关键字段建议包含：日期、车型、零件名称、不良现象、不良原因分类、解决进度、供应商名称、供应商等级、数量。</p>
-      <textarea id="rawInput" placeholder="把 Excel 复制后直接粘贴，或粘贴 CSV 文本..."></textarea>
-      <div class="btns">
-        <button class="btn-primary" id="runBtn">生成 BI 聚合结果</button>
-        <button class="btn-secondary" id="sampleBtn">填充示例数据</button>
-        <button class="btn-light" id="clearBtn">清空</button>
-        <button class="btn-light" id="copyJsonBtn">复制 JSON</button>
-        <button class="btn-light" id="downloadJsonBtn">下载 JSON</button>
-      </div>
-      <div id="statusBox" class="status">等待输入数据</div>
-    </section>
-
-    <div id="results" style="display:none;">
-      <section class="panel">
-        <h2>2) 字段映射与规范化结果</h2>
-        <div id="mappingInfo"></div>
+      <section class="page-head">
+        <h1>PQ质量分析工具</h1>
       </section>
 
-      <section class="panel">
-        <h2>模块 1：全局状态与趋势</h2>
-        <div class="grid">
-          <div class="span-4">
-            <div class="pill">日维度</div>
-            <div class="table-wrap"><table id="trendDay"></table></div>
+      <section class="filter-console" aria-label="筛选控制台">
+        <div class="filter-console-head">
+          <button
+            id="toggleUploadPanelBtn"
+            class="filter-toggle-btn"
+            type="button"
+            aria-controls="uploadPanel"
+            aria-expanded="false"
+          >
+            筛选条件
+          </button>
+          <p>上传文件后可按时间、车型、供应商和状态快速收敛分析范围。</p>
+        </div>
+        <div class="filter-item">
+          <label for="timeRangeFilter">时间范围:</label>
+          <select id="timeRangeFilter" disabled>
+            <option value="this_year">本年</option>
+            <option value="this_quarter">本季度</option>
+            <option value="this_month">本月</option>
+            <option value="this_week">本周</option>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="modelFilter">车型:</label>
+          <select id="modelFilter" disabled>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="supplierFilter">供应商:</label>
+          <select id="supplierFilter" disabled>
+            <option value="all">全部</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="statusFilter">状态:</label>
+          <select id="statusFilter" disabled>
+            <option value="all">全部</option>
+            <option value="已关闭">已关闭</option>
+            <option value="解析中">解析中</option>
+            <option value="对策中">对策中</option>
+          </select>
+        </div>
+        <button id="exportFilterBtn" class="console-export" disabled>导出结果</button>
+      </section>
+
+      <section id="uploadPanel" class="panel upload-panel panel-upload upload-panel-standalone is-collapsed">
+        <div class="upload-panel-grid">
+          <div class="upload-copy">
+            <h2>上传数据</h2>
+            <p class="panel-copy">
+              支持 <code>.xlsx</code>、<code>.xls</code>、<code>.csv</code>。建议包含“检测项名称、不良名称、车型、供应商、不良等级、解决进度、发生原因”等字段。
+            </p>
+
+            <label class="upload-box" for="fileInput">
+              <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+              <span>点击选择文件</span>
+              <small>或将文件拖到这里</small>
+            </label>
+
+            <p id="statusMessage" class="status-message">还没有上传文件。</p>
           </div>
-          <div class="span-4">
-            <div class="pill">周维度</div>
-            <div class="table-wrap"><table id="trendWeek"></table></div>
-          </div>
-          <div class="span-4">
-            <div class="pill">月维度</div>
-            <div class="table-wrap"><table id="trendMonth"></table></div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>原始数据行数</span>
+              <strong id="rowCount">0</strong>
+            </article>
+            <article class="summary-card">
+              <span>合并项种类数</span>
+              <strong id="groupCount">0</strong>
+            </article>
           </div>
         </div>
       </section>
 
-      <section class="panel">
-        <h2>模块 2：三大核心占比</h2>
-        <div class="grid">
-          <div class="span-4">
-            <div class="pill">车型问题项目数</div>
-            <div class="table-wrap"><table id="distModel"></table></div>
+      <main class="layout">
+        <section class="panel panel-trend">
+          <div class="panel-heading">
+            <h2>不良数量趋势图</h2>
+            <p>横轴随时间筛选自动切换：本年/本季度按月，本月按周，本周按日。</p>
           </div>
-          <div class="span-4">
-            <div class="pill">不良原因</div>
-            <div class="table-wrap"><table id="distCause"></table></div>
+          <div class="chart-wrap">
+            <canvas id="defectTrendChart" aria-label="不良数量趋势图"></canvas>
           </div>
-          <div class="span-4">
-            <div class="pill">解决进度</div>
-            <div class="table-wrap"><table id="distStatus"></table></div>
+        </section>
+
+        <section class="panel panel-pie panel-pie-model">
+          <div class="panel-heading">
+            <h2>车型问题项目数饼图</h2>
+            <p>同一车型内，相同“合并项”只计为 1 个项目数。</p>
           </div>
-        </div>
-      </section>
+          <div class="chart-wrap">
+            <canvas id="modelProjectPie" aria-label="车型问题项目数饼图"></canvas>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>模块 3：TOP5 供应商红黑榜</h2>
-        <div class="table-wrap"><table id="topSuppliers"></table></div>
-      </section>
+        <section class="panel panel-pie panel-pie-reason">
+          <div class="panel-heading">
+            <h2>不良原因饼图</h2>
+            <p>按不良原因统计数量占比。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="reasonPie" aria-label="不良原因饼图"></canvas>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>模块 4：TOP5 频发不良项目</h2>
-        <div class="table-wrap"><table id="topDefects"></table></div>
-      </section>
+        <section class="panel panel-pie panel-pie-progress">
+          <div class="panel-heading">
+            <h2>解决进度饼图</h2>
+            <p>按解决进度统计数量占比。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="progressPie" aria-label="解决进度饼图"></canvas>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>模块 5：不良原因帕累托分析</h2>
-        <div class="table-wrap"><table id="pareto"></table></div>
-      </section>
+        <section class="panel panel-supplier">
+          <div class="panel-heading">
+            <h2>TOP5 供应商明细</h2>
+            <p>包含供应商、主等级、项目数、不良数量与最多不良名称。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="supplierTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>模块 6：问题点下钻明细库</h2>
-        <div class="table-wrap"><table id="drilldown"></table></div>
-      </section>
+        <section class="panel panel-defect-top">
+          <div class="panel-heading">
+            <h2>TOP5不良</h2>
+            <p>包含不良名称、主等级、项目数、最多供应商与不良数量。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="defectTopTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>BI JSON 输出</h2>
-        <div id="jsonOutput" class="json-box"></div>
-      </section>
+        <section class="panel panel-progress">
+          <div class="panel-heading">
+            <h2>不良原因帕累托图</h2>
+            <p>柱状显示数量，折线显示累计占比；点击柱体可查看问题点明细。</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="progressStackChart" aria-label="不良原因帕累托图"></canvas>
+          </div>
+        </section>
+
+        <section class="panel panel-issue-detail">
+          <div class="panel-heading">
+            <h2 id="issueDetailTitle">问题点明细</h2>
+            <p>点击上方帕累托图后自动展示筛选后的记录。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="issueDetailTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel panel-stats">
+          <div class="panel-heading">
+            <h2>数量统计</h2>
+            <p>按“合并项”分组计数，并按数量降序排序。</p>
+          </div>
+          <div class="table-wrap">
+            <table id="statsTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
-  </div>
-
-  <script>
-    const el = {
-      rawInput: document.getElementById("rawInput"),
-      runBtn: document.getElementById("runBtn"),
-      sampleBtn: document.getElementById("sampleBtn"),
-      clearBtn: document.getElementById("clearBtn"),
-      copyJsonBtn: document.getElementById("copyJsonBtn"),
-      downloadJsonBtn: document.getElementById("downloadJsonBtn"),
-      statusBox: document.getElementById("statusBox"),
-      results: document.getElementById("results"),
-      mappingInfo: document.getElementById("mappingInfo"),
-      jsonOutput: document.getElementById("jsonOutput")
-    };
-
-    let lastResult = null;
-
-    const HEADER_ALIASES = {
-      date: ["日期", "发生日期", "检出日期", "时间", "date", "日期时间"],
-      model: ["车型", "车型名称", "车系", "model"],
-      partName: ["零件名称", "零件", "部件", "part", "partname"],
-      defectPhenomenon: ["不良现象", "缺陷现象", "问题现象", "不良", "defect"],
-      causeCategory: ["不良原因分类", "不良原因", "原因分类", "原因", "root cause", "cause"],
-      progress: ["解决进度", "进度", "状态", "处理状态", "status"],
-      supplierName: ["供应商名称", "供应商", "supplier", "supplier name"],
-      supplierGrade: ["供应商等级", "供应商级别", "等级", "grade", "supplier grade"],
-      quantity: ["数量", "不良数量", "频次", "qty", "count", "数量(件)"],
-      issueLevel: ["所属等级", "问题等级", "不良等级", "severity"]
-    };
-
-    function setStatus(text, type = "") {
-      el.statusBox.textContent = text;
-      el.statusBox.className = "status";
-      if (type) {
-        el.statusBox.classList.add(type);
-      }
-    }
-
-    function normalizeHeader(header) {
-      return String(header || "").trim().toLowerCase().replace(/\s+/g, "");
-    }
-
-    function detectDelimiter(text) {
-      const firstLine = String(text).split(/\r?\n/).find(Boolean) || "";
-      const comma = (firstLine.match(/,/g) || []).length;
-      const tab = (firstLine.match(/\t/g) || []).length;
-      const semicolon = (firstLine.match(/;/g) || []).length;
-      if (tab >= comma && tab >= semicolon && tab > 0) return "\t";
-      if (semicolon > comma && semicolon > 0) return ";";
-      return ",";
-    }
-
-    function parseCSV(text, delimiter) {
-      const rows = [];
-      let row = [];
-      let cur = "";
-      let inQuotes = false;
-      const data = String(text).replace(/\r/g, "");
-
-      for (let i = 0; i < data.length; i++) {
-        const ch = data[i];
-        const next = data[i + 1];
-
-        if (ch === "\"") {
-          if (inQuotes && next === "\"") {
-            cur += "\"";
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-          continue;
-        }
-
-        if (ch === delimiter && !inQuotes) {
-          row.push(cur);
-          cur = "";
-          continue;
-        }
-
-        if (ch === "\n" && !inQuotes) {
-          row.push(cur);
-          rows.push(row);
-          row = [];
-          cur = "";
-          continue;
-        }
-
-        cur += ch;
-      }
-
-      row.push(cur);
-      rows.push(row);
-      return rows.filter(r => r.some(cell => String(cell).trim() !== ""));
-    }
-
-    function resolveFieldMap(headers) {
-      const normalizedHeaders = headers.map(h => normalizeHeader(h));
-      const fieldMap = {};
-
-      Object.keys(HEADER_ALIASES).forEach(field => {
-        const aliases = HEADER_ALIASES[field].map(a => normalizeHeader(a));
-        const idx = normalizedHeaders.findIndex(h => aliases.includes(h));
-        if (idx >= 0) fieldMap[field] = idx;
-      });
-      return fieldMap;
-    }
-
-    function normalizeProgress(value) {
-      const raw = String(value || "").trim().toLowerCase();
-      if (!raw) return "解析中";
-      if (/(已关闭|关闭|结案|完结|closed|done|finish)/.test(raw)) return "已关闭";
-      if (/(对策中|整改中|改善中|措施中|countermeasure|action)/.test(raw)) return "对策中";
-      if (/(解析中|分析中|处理中|排查中|investigating|analysis)/.test(raw)) return "解析中";
-      return "解析中";
-    }
-
-    function normalizeGrade(value) {
-      const raw = String(value || "").trim().toUpperCase();
-      if (/A/.test(raw)) return "A";
-      if (/B/.test(raw)) return "B";
-      if (/C/.test(raw)) return "C";
-      if (/D/.test(raw)) return "D";
-      return "D";
-    }
-
-    function parseQuantity(value) {
-      const num = Number(String(value ?? "").replace(/,/g, "").trim());
-      if (Number.isFinite(num) && num > 0) return num;
-      return 1;
-    }
-
-    function normalizeDateString(value) {
-      const raw = String(value || "").trim();
-      if (!raw) return "";
-      const normalized = raw.replace(/[年/.]/g, "-").replace(/[月]/g, "-").replace(/[日]/g, "");
-      const dt = new Date(normalized);
-      if (Number.isNaN(dt.getTime())) return "";
-      return toDateKey(dt);
-    }
-
-    function toDateKey(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const d = String(date.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    }
-
-    function getWeekKey(dateStr) {
-      const date = new Date(dateStr + "T00:00:00");
-      if (Number.isNaN(date.getTime())) return "";
-      const temp = new Date(date.getTime());
-      temp.setHours(0, 0, 0, 0);
-      temp.setDate(temp.getDate() + 3 - ((temp.getDay() + 6) % 7));
-      const week1 = new Date(temp.getFullYear(), 0, 4);
-      const weekNo = 1 + Math.round(((temp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
-      return `${temp.getFullYear()}-W${String(weekNo).padStart(2, "0")}`;
-    }
-
-    function getMonthKey(dateStr) {
-      if (!dateStr) return "";
-      return dateStr.slice(0, 7);
-    }
-
-    function safeText(value, fallback = "未填写") {
-      const v = String(value || "").trim();
-      return v || fallback;
-    }
-
-    function buildRows(parsedRows) {
-      if (!parsedRows.length) return { rows: [], map: {} };
-      const headers = parsedRows[0];
-      const fieldMap = resolveFieldMap(headers);
-      const rows = [];
-
-      for (let i = 1; i < parsedRows.length; i++) {
-        const src = parsedRows[i];
-        const row = {
-          date: normalizeDateString(src[fieldMap.date]),
-          model: safeText(src[fieldMap.model], "未知车型"),
-          partName: safeText(src[fieldMap.partName], "未知零件"),
-          defectPhenomenon: safeText(src[fieldMap.defectPhenomenon], "未知不良"),
-          causeCategory: safeText(src[fieldMap.causeCategory], "未分类原因"),
-          progress: normalizeProgress(src[fieldMap.progress]),
-          supplierName: safeText(src[fieldMap.supplierName], "未知供应商"),
-          supplierGrade: normalizeGrade(src[fieldMap.supplierGrade]),
-          quantity: parseQuantity(src[fieldMap.quantity]),
-          issueLevel: safeText(src[fieldMap.issueLevel], "")
-        };
-
-        row.mergedItem = `${row.partName} - ${row.defectPhenomenon}`;
-        rows.push(row);
-      }
-      return { rows, map: fieldMap, headers };
-    }
-
-    function sumMapToArray(mapObj, keyName, valueName) {
-      return Object.entries(mapObj).map(([k, v]) => ({ [keyName]: k, [valueName]: v }));
-    }
-
-    function formatPercent(num, den) {
-      if (!den) return "0.00%";
-      return `${((num / den) * 100).toFixed(2)}%`;
-    }
-
-    function topByQty(rows, keyGetter, qtyGetter = r => r.quantity) {
-      const counter = new Map();
-      rows.forEach(r => {
-        const key = keyGetter(r);
-        const qty = qtyGetter(r);
-        counter.set(key, (counter.get(key) || 0) + qty);
-      });
-      return [...counter.entries()]
-        .map(([key, quantity]) => ({ key, quantity }))
-        .sort((a, b) => b.quantity - a.quantity);
-    }
-
-    function mostFrequent(entries, keyField, valField = "quantity") {
-      const m = new Map();
-      entries.forEach(e => m.set(e[keyField], (m.get(e[keyField]) || 0) + (e[valField] || 0)));
-      const sorted = [...m.entries()].sort((a, b) => b[1] - a[1]);
-      return sorted[0] ? sorted[0][0] : "无";
-    }
-
-    function aggregateAll(rows) {
-      const totalQty = rows.reduce((s, r) => s + r.quantity, 0);
-
-      const trendDayMap = {};
-      const trendWeekMap = {};
-      const trendMonthMap = {};
-      rows.forEach(r => {
-        const d = r.date || "未知日期";
-        const w = r.date ? getWeekKey(r.date) : "未知周";
-        const m = r.date ? getMonthKey(r.date) : "未知月";
-        trendDayMap[d] = (trendDayMap[d] || 0) + r.quantity;
-        trendWeekMap[w] = (trendWeekMap[w] || 0) + r.quantity;
-        trendMonthMap[m] = (trendMonthMap[m] || 0) + r.quantity;
-      });
-
-      const trendDay = sumMapToArray(trendDayMap, "时间节点", "不良总数量").sort((a, b) => (a["时间节点"] > b["时间节点"] ? 1 : -1));
-      const trendWeek = sumMapToArray(trendWeekMap, "时间节点", "不良总数量").sort((a, b) => (a["时间节点"] > b["时间节点"] ? 1 : -1));
-      const trendMonth = sumMapToArray(trendMonthMap, "时间节点", "不良总数量").sort((a, b) => (a["时间节点"] > b["时间节点"] ? 1 : -1));
-
-      const modelProjectMap = new Map();
-      rows.forEach(r => {
-        if (!modelProjectMap.has(r.model)) modelProjectMap.set(r.model, new Set());
-        modelProjectMap.get(r.model).add(r.mergedItem);
-      });
-      const modelProjectSum = [...modelProjectMap.values()].reduce((s, set) => s + set.size, 0);
-      const distModel = [...modelProjectMap.entries()]
-        .map(([model, set]) => ({
-          "车型": model,
-          "项目数": set.size,
-          "占比": formatPercent(set.size, modelProjectSum)
-        }))
-        .sort((a, b) => b["项目数"] - a["项目数"]);
-
-      const causeDistRaw = topByQty(rows, r => r.causeCategory);
-      const distCause = causeDistRaw.map(c => ({
-        "不良原因分类": c.key,
-        "数量": c.quantity,
-        "占比": formatPercent(c.quantity, totalQty)
-      }));
-
-      const statusDistRaw = topByQty(rows, r => r.progress);
-      const statusOrder = { "已关闭": 0, "解析中": 1, "对策中": 2 };
-      const distStatus = statusDistRaw
-        .map(s => ({
-          "解决进度": s.key,
-          "数量": s.quantity,
-          "占比": formatPercent(s.quantity, totalQty)
-        }))
-        .sort((a, b) => statusOrder[a["解决进度"]] - statusOrder[b["解决进度"]]);
-
-      const supplierMap = new Map();
-      rows.forEach(r => {
-        if (!supplierMap.has(r.supplierName)) {
-          supplierMap.set(r.supplierName, {
-            supplierName: r.supplierName,
-            rows: [],
-            total: 0
-          });
-        }
-        const bucket = supplierMap.get(r.supplierName);
-        bucket.rows.push(r);
-        bucket.total += r.quantity;
-      });
-
-      const topSuppliers = [...supplierMap.values()]
-        .map(b => {
-          const mergedSet = new Set(b.rows.map(x => x.mergedItem));
-          const grade = mostFrequent(b.rows, "supplierGrade");
-          const mostDefect = topByQty(b.rows, r => r.mergedItem)[0]?.key || "无";
-          return {
-            "供应商名称": b.supplierName,
-            "供应商等级": grade,
-            "涉及项目数": mergedSet.size,
-            "最多不良名称": mostDefect,
-            "不良总数量": b.total
-          };
-        })
-        .sort((a, b) => b["不良总数量"] - a["不良总数量"])
-        .slice(0, 5);
-
-      const defectMap = new Map();
-      rows.forEach(r => {
-        if (!defectMap.has(r.mergedItem)) {
-          defectMap.set(r.mergedItem, {
-            defect: r.mergedItem,
-            rows: [],
-            total: 0
-          });
-        }
-        const bucket = defectMap.get(r.mergedItem);
-        bucket.rows.push(r);
-        bucket.total += r.quantity;
-      });
-
-      const topDefects = [...defectMap.values()]
-        .map(b => {
-          const topSupplier = topByQty(b.rows, r => r.supplierName)[0]?.key || "无";
-          const issueLevel = mostFrequent(b.rows, "issueLevel") || "";
-          const dominantGrade = mostFrequent(b.rows, "supplierGrade");
-          return {
-            "不良名称(合并项)": b.defect,
-            "所属等级": issueLevel && issueLevel !== "未填写" ? issueLevel : dominantGrade,
-            "涉及项目数": 1,
-            "最多供应商": topSupplier,
-            "不良总数量": b.total
-          };
-        })
-        .sort((a, b) => b["不良总数量"] - a["不良总数量"])
-        .slice(0, 5);
-
-      let cumulative = 0;
-      const pareto = causeDistRaw.map(c => {
-        const matched = rows.filter(r => r.causeCategory === c.key);
-        const closed = matched.reduce((s, r) => s + (r.progress === "已关闭" ? r.quantity : 0), 0);
-        const parsing = matched.reduce((s, r) => s + (r.progress === "解析中" ? r.quantity : 0), 0);
-        const action = matched.reduce((s, r) => s + (r.progress === "对策中" ? r.quantity : 0), 0);
-        cumulative += c.quantity;
-        return {
-          "不良原因分类": c.key,
-          "总数量": c.quantity,
-          "已关闭数量": closed,
-          "解析中数量": parsing,
-          "对策中数量": action,
-          "累计占比（%）": ((cumulative / totalQty) * 100).toFixed(2) + "%"
-        };
-      });
-
-      const drillMap = new Map();
-      rows.forEach(r => {
-        const key = [r.causeCategory, r.progress, r.mergedItem, r.supplierName, r.supplierGrade].join("||");
-        drillMap.set(key, (drillMap.get(key) || 0) + r.quantity);
-      });
-      const drilldown = [...drillMap.entries()]
-        .map(([key, quantity], idx) => {
-          const [causeCategory, progress, mergedItem, supplierName, grade] = key.split("||");
-          return {
-            "序号": idx + 1,
-            "不良原因": causeCategory,
-            "解决进度": progress,
-            "合并项(零件+问题)": mergedItem,
-            "供应商名称": supplierName,
-            "等级": grade,
-            "数量": quantity
-          };
-        })
-        .sort((a, b) => b["数量"] - a["数量"])
-        .map((r, i) => ({ ...r, "序号": i + 1 }));
-
-      return {
-        meta: {
-          recordCount: rows.length,
-          totalDefectQty: totalQty,
-          generatedAt: new Date().toISOString()
-        },
-        module1_global_trend: {
-          day: trendDay,
-          week: trendWeek,
-          month: trendMonth
-        },
-        module2_distribution_analysis: {
-          model_project_pie: distModel,
-          cause_pie: distCause,
-          progress_pie: distStatus
-        },
-        module3_top5_suppliers: topSuppliers,
-        module4_top5_defects: topDefects,
-        module5_root_cause_pareto: pareto,
-        module6_drilldown: drilldown
-      };
-    }
-
-    function renderTable(tableId, rows) {
-      const table = document.getElementById(tableId);
-      if (!rows || !rows.length) {
-        table.innerHTML = "<tr><td>无数据</td></tr>";
-        return;
-      }
-      const headers = Object.keys(rows[0]);
-      const thead = `<thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>`;
-      const tbody = `<tbody>${rows.map(r => `<tr>${headers.map(h => `<td>${escapeHtml(String(r[h]))}</td>`).join("")}</tr>`).join("")}</tbody>`;
-      table.innerHTML = thead + tbody;
-    }
-
-    function escapeHtml(str) {
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    function renderAll(result, fieldMap, headers) {
-      el.results.style.display = "block";
-      el.mappingInfo.innerHTML = `
-        <div class="muted">
-          输入记录数：<b>${result.meta.recordCount}</b> 条；不良总数量：<b>${result.meta.totalDefectQty}</b>。<br/>
-          当前已识别字段：${Object.keys(fieldMap).map(k => `${k} -> ${headers[fieldMap[k]] || "未识别"}`).join("；")}
-        </div>`;
-
-      renderTable("trendDay", result.module1_global_trend.day);
-      renderTable("trendWeek", result.module1_global_trend.week);
-      renderTable("trendMonth", result.module1_global_trend.month);
-
-      renderTable("distModel", result.module2_distribution_analysis.model_project_pie);
-      renderTable("distCause", result.module2_distribution_analysis.cause_pie);
-      renderTable("distStatus", result.module2_distribution_analysis.progress_pie);
-
-      renderTable("topSuppliers", result.module3_top5_suppliers);
-      renderTable("topDefects", result.module4_top5_defects);
-      renderTable("pareto", result.module5_root_cause_pareto);
-      renderTable("drilldown", result.module6_drilldown);
-
-      el.jsonOutput.textContent = JSON.stringify(result, null, 2);
-    }
-
-    function runAggregation() {
-      const raw = el.rawInput.value.trim();
-      if (!raw) {
-        setStatus("请先粘贴原始数据。", "error");
-        el.results.style.display = "none";
-        return;
-      }
-      try {
-        const delimiter = detectDelimiter(raw);
-        const parsed = parseCSV(raw, delimiter);
-        if (parsed.length < 2) {
-          setStatus("数据行不足，请确认已包含表头和至少 1 行明细。", "error");
-          return;
-        }
-
-        const { rows, map, headers } = buildRows(parsed);
-        const requiredFields = ["partName", "defectPhenomenon", "causeCategory", "progress", "supplierName", "supplierGrade", "quantity"];
-        const missed = requiredFields.filter(f => map[f] === undefined);
-        if (missed.length) {
-          setStatus(`字段识别不完整：缺少 ${missed.join(", ")}。请检查表头。`, "warn");
-        } else {
-          setStatus(`聚合成功：共处理 ${rows.length} 条记录。`, "success");
-        }
-
-        const result = aggregateAll(rows);
-        lastResult = result;
-        renderAll(result, map, headers);
-      } catch (err) {
-        setStatus(`处理失败：${err.message}`, "error");
-      }
-    }
-
-    function copyJSON() {
-      if (!lastResult) {
-        setStatus("暂无可复制结果，请先执行聚合。", "warn");
-        return;
-      }
-      navigator.clipboard.writeText(JSON.stringify(lastResult, null, 2))
-        .then(() => setStatus("JSON 已复制到剪贴板。", "success"))
-        .catch(() => setStatus("复制失败，请手动复制下方 JSON。", "error"));
-    }
-
-    function downloadJSON() {
-      if (!lastResult) {
-        setStatus("暂无可下载结果，请先执行聚合。", "warn");
-        return;
-      }
-      const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const now = new Date();
-      const fileName = `supplier-bi-result-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.json`;
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setStatus("JSON 文件已下载。", "success");
-    }
-
-    function fillSample() {
-      const sample = `日期,车型,零件名称,不良现象,不良原因分类,解决进度,供应商名称,供应商等级,数量,所属等级
-2026-03-01,SUV-A,左后车门开闭（门总成）,异音,人员遵守度,解析中,星航冲压,A,12,P1
-2026-03-01,SUV-A,左后车门开闭（门总成）,异音,人员遵守度,对策中,星航冲压,A,7,P1
-2026-03-02,SUV-B,中控面板,划伤,清洁度管理,已关闭,恒宇内饰,B,18,P2
-2026-03-03,SUV-B,中控面板,划伤,清洁度管理,解析中,恒宇内饰,B,9,P2
-2026-03-04,Sedan-C,线束总成,端子退针,二级供应商管理,对策中,锐博线束,C,15,P1
-2026-03-05,Sedan-C,线束总成,端子退针,二级供应商管理,解析中,锐博线束,C,13,P1
-2026-03-06,SUV-A,后保险杠,间隙超差,装配参数控制,已关闭,联达注塑,B,11,P2
-2026-03-07,SUV-D,前大灯总成,密封不良,来料防护管理,解析中,辰光电子,D,20,P1
-2026-03-08,SUV-D,前大灯总成,密封不良,来料防护管理,对策中,辰光电子,D,8,P1
-2026-03-09,SUV-A,后保险杠,间隙超差,装配参数控制,解析中,联达注塑,B,5,P2`;
-      el.rawInput.value = sample;
-      setStatus("示例数据已填充，可直接点击“生成 BI 聚合结果”。", "success");
-    }
-
-    el.runBtn.addEventListener("click", runAggregation);
-    el.copyJsonBtn.addEventListener("click", copyJSON);
-    el.downloadJsonBtn.addEventListener("click", downloadJSON);
-    el.sampleBtn.addEventListener("click", fillSample);
-    el.clearBtn.addEventListener("click", () => {
-      el.rawInput.value = "";
-      el.results.style.display = "none";
-      lastResult = null;
-      setStatus("已清空输入。");
-    });
-  </script>
-</body>
+  </body>
 </html>
