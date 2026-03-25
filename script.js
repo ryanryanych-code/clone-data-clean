@@ -151,7 +151,7 @@ function initializeFilters(rows) {
   populateSelect(modelFilter, uniqueValues(rows.map((row) => row.model)), "全部");
   populateSelect(supplierFilter, uniqueValues(rows.map((row) => row.supplier)), "全部");
 
-  timeRangeFilter.value = hasDateData ? "this_year" : "all";
+  timeRangeFilter.value = hasDateData ? "this_month" : "all";
   timeRangeFilter.disabled = !hasDateData;
   statusFilter.value = "all";
 
@@ -164,7 +164,7 @@ function applyFilters() {
       matchesTimeRange(row, timeRangeFilter.value) &&
       matchesSelect(row.model, modelFilter.value) &&
       matchesSelect(row.supplier, supplierFilter.value) &&
-      matchesStatus(row.statusClass, statusFilter.value)
+      matchesStatus(row.progress, statusFilter.value)
     );
   });
 
@@ -280,11 +280,11 @@ function matchesSelect(value, selected) {
   return value === selected;
 }
 
-function matchesStatus(statusClass, selected) {
+function matchesStatus(progress, selected) {
   if (selected === "all") {
     return true;
   }
-  return statusClass === selected;
+  return progress === selected;
 }
 
 function matchesTimeRange(row, selectedRange) {
@@ -341,8 +341,9 @@ function displayTimeLabel(value) {
 }
 
 function displayStatusLabel(value) {
-  if (value === "open") return "未关闭";
-  if (value === "closed") return "已关闭";
+  if (value === "已关闭") return "已关闭";
+  if (value === "解析中") return "解析中";
+  if (value === "对策中") return "对策中";
   return "全部";
 }
 
@@ -485,7 +486,7 @@ function buildNormalizedRows(rows, columns) {
     const defectName = normalizeCell(row[columns.defect]);
     const mergedName = [inspectionName, defectName].filter(Boolean).join(" - ");
 
-    const progress = normalizeCell(row[columns.progress]) || EMPTY_VALUE;
+    const progress = normalizeProgress(normalizeCell(row[columns.progress]) || EMPTY_VALUE);
     const rawStatus = columns.status ? normalizeCell(row[columns.status]) : "";
     const normalizedStatus = normalizeStatus(rawStatus, progress);
 
@@ -493,7 +494,7 @@ function buildNormalizedRows(rows, columns) {
       merged: mergedName || EMPTY_VALUE,
       model: normalizeCell(row[columns.model]) || EMPTY_VALUE,
       supplier: normalizeCell(row[columns.supplier]) || EMPTY_VALUE,
-      level: normalizeCell(row[columns.level]) || EMPTY_VALUE,
+      level: normalizeLevel(normalizeCell(row[columns.level])),
       progress,
       reason: normalizeCell(row[columns.reason]) || EMPTY_VALUE,
       statusText: normalizedStatus.text,
@@ -501,6 +502,29 @@ function buildNormalizedRows(rows, columns) {
       dateObj: columns.date ? parseDate(row[columns.date]) : null,
     };
   });
+}
+
+function normalizeProgress(progressText) {
+  const source = String(progressText || "").trim();
+  if (!source || source === EMPTY_VALUE) {
+    return "解析中";
+  }
+  if (/已关闭|关闭|完结|完成|closed|done/i.test(source) && !/未关闭/.test(source)) {
+    return "已关闭";
+  }
+  if (/对策中|整改中|改善中|措施中|countermeasure|action/i.test(source)) {
+    return "对策中";
+  }
+  return "解析中";
+}
+
+function normalizeLevel(levelText) {
+  const source = String(levelText || "").trim().toUpperCase();
+  if (source.includes("A")) return "A";
+  if (source.includes("B")) return "B";
+  if (source.includes("C")) return "C";
+  if (source.includes("D")) return "D";
+  return "D";
 }
 
 function normalizeStatus(statusText, progressText) {

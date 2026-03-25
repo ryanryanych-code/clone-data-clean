@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>质量问题分析助手</title>
+    <title>供应商来料不良 BI 大屏</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -25,6 +25,21 @@
     ></script>
     <script src="./autoload-data.js" defer></script>
     <script src="./script.js" defer></script>
+    <style>
+      .topbar,
+      .page-head {
+        display: none;
+      }
+
+      .page-shell {
+        width: min(1560px, calc(100% - 24px));
+        margin-top: 10px;
+      }
+
+      .filter-console {
+        margin-top: 12px;
+      }
+    </style>
   </head>
   <body>
     <div class="page-shell">
